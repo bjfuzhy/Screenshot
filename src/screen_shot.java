@@ -115,8 +115,11 @@ public class screen_shot{
 		});
 
 		Label label = new Label("请按下鼠标左键并拖动");
-		//窗体布局
+		
+		//锁定窗口
 		frame.setAlwaysOnTop(true);
+		
+		//窗体布局
 		frame.add(label, "North");
 		frame.add(tField, "South");
 		Panel p = new Panel();
