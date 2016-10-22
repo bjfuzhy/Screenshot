@@ -1,4 +1,9 @@
-
+/*
+ * 仍存在的问题...
+ * 1,图片命名问题
+ * 2,窗口应设置最小化
+ * 3,当未确定截图矩形时会抛出异常（新建矩形之前判断width值
+ * */
 import java.awt.AWTException;
 import java.awt.BorderLayout;
 import java.awt.Button;
@@ -35,26 +40,34 @@ import javax.swing.JFrame;
 import javax.swing.RepaintManager;
 
 import com.sun.awt.AWTUtilities;
+import com.melloware.jintellitype.HotkeyListener;
+import com.melloware.jintellitype.JIntellitype;  
+
+import java.util.Date;
+import java.text.SimpleDateFormat;
+
 
 public class screen_shot{
+	//设置热键键值
+	static final int KEY_1 = 88;
+	static final int KEY_2 = 89;  
 	
 	//窗口名称
 	JFrame frame = new JFrame("截图工具");
 	Button b1 = new Button("截图");
 	Button b2 = new Button("关闭");
 	
-	TextField tField = new TextField(30);
 	
 	//记录截图时鼠标的开始位置和结束位置
 	int startx,starty;
 	int endx,endy;
+
+	//获取屏幕宽高
+	Dimension   screensize   =   Toolkit.getDefaultToolkit().getScreenSize();
+	int width = (int)screensize.getWidth();
+	int height = (int)screensize.getHeight();
 	
 	public screen_shot(){
-		
-		//获取屏幕宽高
-		Dimension   screensize   =   Toolkit.getDefaultToolkit().getScreenSize();
-		int width = (int)screensize.getWidth();
-		int height = (int)screensize.getHeight();
 		
 		//鼠标监听事件
 		frame.addMouseListener(new MouseAdapter(){
@@ -66,19 +79,11 @@ public class screen_shot{
 				endx=e.getX();
 				endy=e.getY();
 			}
-			public void mouseEntered(MouseEvent e) {
-				tField.setText("鼠标已经进入窗体");
-			}
-			public void mouseExited(MouseEvent e) {
-				tField.setText("鼠标已经移出窗体");
-				
-			}
 		});
 		frame.addMouseMotionListener(new MouseAdapter() {
 			public void mouseDragged(MouseEvent e) {
 				String string = "鼠标由("+startx+","+starty
 						+")移动到（" + e.getX() + "，" + e.getY() +"）";
-				tField.setText(string);
 			}
 		}); 
 		
@@ -98,14 +103,37 @@ public class screen_shot{
 			}
 		});
 		
-		//设置截图按钮的快捷键监听(有bug
-		b1.addKeyListener(new KeyAdapter() {
+		//用了jintellitype类库设置全局热键
+		JIntellitype.getInstance().registerHotKey(KEY_1,JIntellitype.MOD_WIN,(int)'A');
+		JIntellitype.getInstance().registerHotKey(KEY_2,0,27);
+		JIntellitype.getInstance().addHotKeyListener(new HotkeyListener() {
+			public void onHotKey(int markCode) {
+				switch (markCode) {  
+					case KEY_1:  
+						action();
+						break;  
+					case KEY_2:  
+						System.exit(0);
+						break;   
+		     		}                 
+		    }
+		}); 
+		
+		//设置截图按钮的快捷键监听
+		/*KeyAdapter ka=new KeyAdapter(){
 			public void keyPressed(KeyEvent e) {
 				if(e.isControlDown() &&  e.isShiftDown()&& e.getKeyCode() == KeyEvent.VK_A ){
-					new screen_shot().action();
+					action();
+				}
+				if(e.getKeyCode() == KeyEvent.VK_ESCAPE ){
+					System.exit(0);
 				}
 			}
-		});
+		};
+		b1.addKeyListener(ka);
+		b2.addKeyListener(ka);
+		*/
+		
 		
 		//设置关闭按钮
 		b2.addActionListener(new ActionListener() {
@@ -113,7 +141,6 @@ public class screen_shot{
 				System.exit(0);
 			}
 		});
-
 		Label label = new Label("请按下鼠标左键并拖动");
 		
 		//锁定窗口
@@ -121,30 +148,64 @@ public class screen_shot{
 		
 		//窗体布局
 		frame.add(label, "North");
-		frame.add(tField, "South");
 		Panel p = new Panel();
 		p.add(b1);
 		p.add(b2);	
 		frame.add(p,BorderLayout.EAST);
-		frame.setSize(200, 100);
-		frame.setLocation(1000, 0);
+		///frame.setSize(200, 100);
+		//frame.setLocation(1000, 0);
+		frame.setSize(width,height);
+		frame.setLocation(0,0);
 		
         frame.setUndecorated(true);
+        
         //设置透明度   使用了rt.jar中的AWTUtilities类 (需要提前对类库进行access设置
-        AWTUtilities.setWindowOpacity(frame, 0.7f);
+        AWTUtilities.setWindowOpacity(frame, 0.01f);
         
 		frame.setVisible(true);
 	}
+	
+	//确保截图的矩形面积非负
+	void ensure(){
+		int tmp;
+		if(startx<endx&&starty<endy){
+			return;
+		}
+		if(starty>endy){
+			tmp=starty;
+			starty=endy;
+			endy=tmp;
+			if(startx>endx){
+				tmp=startx;
+				startx=endx;
+				endx=tmp;
+			}
+		}
+		if(startx>endx){
+			tmp=startx;
+			startx=endx;
+			endx=tmp;
+		}
+	}
+	
+	
 	//具体截屏步骤
 	public void action(){
 		Point point = MouseInfo.getPointerInfo().getLocation();
 		try {
 			//得到矩形截图并存入文件
+			ensure();
 			BufferedImage scnst = (new Robot()).createScreenCapture(
-					new Rectangle(startx+400, starty+250, endx>startx?(endx-startx):(startx-endx),
-							endy>starty?(endy-starty):(starty-endy))
+					new Rectangle(startx, starty, endx-startx,
+							endy-starty)
 					);
-			File file = new File("D:/screen.jpg");
+			
+			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
+			String dt=df.format(new Date());// new Date()为获取当前系统时间
+			//将文件命名为时间.jpg (未实现
+			
+			String dtname="C:\\Users\\Administrator\\Pictures\\";
+			File file = new File(dtname+"1.jpg");
 			try {
 				ImageIO.write(scnst, "jpg", file);
 			} catch (IOException e) {
@@ -161,6 +222,4 @@ public class screen_shot{
 	public static void main(String[] args) {
 		new screen_shot();
 	}
-	
-
 }
