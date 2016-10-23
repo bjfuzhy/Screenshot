@@ -1,17 +1,18 @@
 /*
  * 仍存在的问题...
  * 1,图片命名问题
- * 2,窗口应设置最小化
- * 3,当未确定截图矩形时会抛出异常（新建矩形之前判断width值
  * */
 import java.awt.AWTException;
 import java.awt.BorderLayout;
 import java.awt.Button;
 import java.awt.Canvas;
 import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.Graphics;
+import java.awt.Image;
 import java.awt.Label;
 import java.awt.MouseInfo;
 import java.awt.Panel;
@@ -36,7 +37,9 @@ import java.io.IOException;
 
 import javax.imageio.ImageIO;
 import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.RepaintManager;
 
 import com.sun.awt.AWTUtilities;
@@ -51,7 +54,8 @@ public class screen_shot{
 	//设置热键键值
 	static final int KEY_1 = 88;
 	static final int KEY_2 = 89;  
-	
+	static final int KEY_3 = 90;
+	static final int KEY_4 = 91;
 	//窗口名称
 	JFrame frame = new JFrame("截图工具");
 	Button b1 = new Button("截图");
@@ -106,16 +110,34 @@ public class screen_shot{
 		//用了jintellitype类库设置全局热键
 		JIntellitype.getInstance().registerHotKey(KEY_1,JIntellitype.MOD_WIN,(int)'A');
 		JIntellitype.getInstance().registerHotKey(KEY_2,0,27);
+		JIntellitype.getInstance().registerHotKey(KEY_3,JIntellitype.MOD_WIN+JIntellitype.MOD_CONTROL,(int)'Z');
+		JIntellitype.getInstance().registerHotKey(KEY_4,JIntellitype.MOD_WIN+JIntellitype.MOD_CONTROL,(int)'X');
+		
+		
+		
 		JIntellitype.getInstance().addHotKeyListener(new HotkeyListener() {
 			public void onHotKey(int markCode) {
 				switch (markCode) {  
-					case KEY_1:  
+					case KEY_1:  {
+						if( (startx <= 0 || endx <= 0) || (startx == endx && starty == endy)){
+							JOptionPane.showMessageDialog(frame, "未选中截图区域");
+							break;
+						}
 						action();
 						break;  
+					}
 					case KEY_2:  
 						System.exit(0);
-						break;   
-		     		}                 
+						break;     
+					case KEY_3:{
+						frame.setState(Frame.ICONIFIED);
+						break;
+					}
+					case KEY_4:{
+						frame.setState(0);
+						break;
+					}
+		     	}    
 		    }
 		}); 
 		
@@ -145,6 +167,11 @@ public class screen_shot{
 		
 		//锁定窗口
 		frame.setAlwaysOnTop(true);
+		
+		Toolkit kit = Toolkit.getDefaultToolkit();  
+		Image img=kit.getImage("lib/icon.png");  
+		Cursor cu=kit.createCustomCursor(img,new Point(10,5),"stick");  
+		frame.setCursor(cu);
 		
 		//窗体布局
 		frame.add(label, "North");
@@ -205,7 +232,7 @@ public class screen_shot{
 			//将文件命名为时间.jpg (未实现
 			
 			String dtname="C:\\Users\\Administrator\\Pictures\\";
-			File file = new File(dtname+"1.jpg");
+			File file = new File(dtname+df+".jpg");
 			try {
 				ImageIO.write(scnst, "jpg", file);
 			} catch (IOException e) {
